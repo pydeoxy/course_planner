@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Course Schedule Planner</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Course Schedule Planner</h1>
+        
+        <!-- Table Controls -->
+        <div class="controls">
+            <button onclick="addRow()">+ Add Row</button>
+            <button onclick="exportExcel()">Export Excel</button>
+            <button onclick="exportPDF()">Export PDF</button>
+        </div>
+
+        <!-- Schedule Table -->
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th>Week</th>
+                    <th>Date</th>
+                    <th>Title</th>
+                    <th>Contents</th>
+                    <th>Practices</th>
+                    <th>Assignments</th>
+                    <th>Links</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be added here dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Libraries -->
+    <script src="lib/xlsx.full.min.js"></script>
+    <script src="lib/jspdf.umd.min.js"></script>
+    <script src="js/FileSaver.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
