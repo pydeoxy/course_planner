@@ -8,6 +8,45 @@
 <body>
     <div class="container">
         <h1>Course Schedule Planner</h1>
+
+        <!-- Course Information & Configuration -->
+        <div class="course-info">
+            <!-- Course Metadata -->
+            <div class="metadata-section">
+                <h2>Course Information</h2>
+                <div class="input-group">
+                    <label>Course Name:</label>
+                    <input type="text" id="courseName">
+                </div>
+                <div class="input-group">
+                    <label>Course Code:</label>
+                    <input type="text" id="courseCode">
+                </div>
+            </div>
+        
+            <!-- Schedule Configuration -->
+            <div class="metadata-section">
+                <h2>Schedule Configuration</h2>
+                <div class="input-group">
+                    <label>Timing:</label>
+                    <input type="date" id="startDate" placeholder="Start Date">
+                    <input type="date" id="endDate" placeholder="End Date">
+                </div>
+                
+                <div class="input-group">
+                    <label>Days in Week:</label>
+                    <div class="day-checkboxes">
+                        <label><input type="checkbox" name="days" value="1"> Mon</label>
+                        <label><input type="checkbox" name="days" value="2"> Tue</label>
+                        <label><input type="checkbox" name="days" value="3"> Wed</label>
+                        <label><input type="checkbox" name="days" value="4"> Thu</label>
+                        <label><input type="checkbox" name="days" value="5"> Fri</label>
+                    </div>
+                </div>
+                
+                <button onclick="generateSchedule()">Generate Schedule</button>
+            </div>
+        </div>
         
         <!-- Table Controls -->
         <div class="controls">
@@ -19,6 +58,17 @@
         <!-- Schedule Table -->
         <table id="scheduleTable">
             <thead>
+                <!-- Course Info Row -->
+                <tr id="courseInfoRow">
+                    <th colspan="9">
+                        <div class="course-header">
+                            <span>Course Name: <strong id="displayCourseName">N/A</strong></span>
+                            <span style="margin-left: 20px;">Course Code: <strong id="displayCourseCode">N/A</strong></span>
+                        </div>
+                    </th>
+                </tr>
+                
+                <!-- Column Headers -->
                 <tr>
                     <th>Week</th>
                     <th>Date</th>
