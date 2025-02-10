@@ -155,21 +155,52 @@ function loadSchedule() {
 // Keep existing export functions (modify headers if needed)
 
 function exportExcel() {
-    const worksheet = XLSX.utils.json_to_sheet(scheduleData);
+    if (scheduleData.rows.length === 0) {
+        alert("No data to export!");
+        return;
+    }
+
+    // Create worksheet with headers
+    const headers = ["Week", "Date", "Title", "Contents", "Practices", "Assignments", "Links", "Notes"];
+    const data = scheduleData.rows.map(row => [
+        row.week,
+        row.date,
+        row.title,
+        row.contents,
+        row.practices,
+        row.assignments,
+        row.links,
+        row.notes
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Schedule");
     XLSX.writeFile(workbook, "course_schedule.xlsx");
 }
 
 function exportPDF() {
+    if (scheduleData.rows.length === 0) {
+        alert("No data to export!");
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({
-        orientation: 'landscape'
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
     });
 
+    // Add course info
+    doc.setFontSize(12);
+    doc.text(`Course: ${scheduleData.courseName} (${scheduleData.courseCode})`, 14, 20);
+
+    // Create table
     doc.autoTable({
+        startY: 30,
         head: [['Week', 'Date', 'Title', 'Contents', 'Practices', 'Assignments', 'Links', 'Notes']],
-        body: scheduleData.map(row => [
+        body: scheduleData.rows.map(row => [
             row.week,
             row.date,
             row.title,
@@ -178,7 +209,18 @@ function exportPDF() {
             row.assignments,
             row.links,
             row.notes
-        ])
+        ]),
+        styles: { fontSize: 9 },
+        columnStyles: {
+            0: { cellWidth: 15 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 40 },
+            4: { cellWidth: 30 },
+            5: { cellWidth: 30 },
+            6: { cellWidth: 30 },
+            7: { cellWidth: 30 }
+        }
     });
 
     doc.save('course_schedule.pdf');
