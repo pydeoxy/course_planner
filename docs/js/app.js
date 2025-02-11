@@ -9,7 +9,42 @@ let scheduleData = {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSchedule();
+    enableColumnResizing();
 });
+
+function enableColumnResizing() {
+    const headers = document.querySelectorAll('#scheduleTable th');
+    headers.forEach(header => {
+        const handle = document.createElement('div');
+        handle.className = 'resize-handle';
+        header.appendChild(handle);
+        
+        let startX, startWidth;
+        
+        handle.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            startWidth = header.offsetWidth;
+            document.documentElement.style.cursor = 'col-resize';
+            
+            document.addEventListener('mousemove', doResize);
+            document.addEventListener('mouseup', stopResize);
+        });
+
+        const doResize = (e) => {
+            const newWidth = startWidth + (e.clientX - startX);
+            header.style.width = `${newWidth}px`;
+            Array.from(header.parentNode.children).forEach(th => {
+                th.style.width = `${th.offsetWidth}px`;
+            });
+        };
+
+        const stopResize = () => {
+            document.documentElement.style.cursor = 'default';
+            document.removeEventListener('mousemove', doResize);
+            document.removeEventListener('mouseup', stopResize);
+        };
+    });
+}
 
 // ======================
 // SCHEDULE GENERATION
@@ -69,27 +104,179 @@ function generateSchedule() {
 // ======================
 // TABLE MANAGEMENT
 // ======================
+
+// Helper function to group by week
+function groupByWeek() {
+    const weeks = {};
+    scheduleData.rows.forEach((row, index) => {
+        const weekKey = row.week;
+        if (!weeks[weekKey]) {
+            weeks[weekKey] = {
+                start: index,
+                count: 1
+            };
+        } else {
+            weeks[weekKey].count++;
+        }
+    });
+    return weeks;
+}
+
+// Column Config
+let columnConfig = [
+    { key: 'week', title: 'Week', type: 'text', deletable: false },
+    { key: 'date', title: 'Date', type: 'date', deletable: true },
+    { key: 'title', title: 'Title', type: 'text', deletable: true },
+    { key: 'contents', title: 'Contents', type: 'text', deletable: true },
+    { key: 'practices', title: 'Practices', type: 'text', deletable: true },
+    { key: 'assignments', title: 'Assignments', type: 'text', deletable: true },
+    { 
+        key: 'links', 
+        title: 'Links', 
+        type: 'url',  // Special type for URL handling
+        deletable: true,
+        validation: {
+            pattern: 'https?://.+',  // Basic URL pattern validation
+            errorMessage: 'Must be a valid URL (start with http:// or https://)'
+        }
+    },
+    { key: 'notes', title: 'Notes', type: 'text', deletable: true }
+];
+
+// Add New Column Function
+function addNewColumn() {
+    const colName = prompt("Enter new column name:");
+    if (colName) {
+        const newCol = {
+            key: colName.toLowerCase().replace(/\s+/g, '_'),
+            title: colName,
+            type: 'text',
+            deletable: true
+        };
+        columnConfig.push(newCol);
+        renderTable();
+        saveColumnConfig();
+    }
+}
+
+// Delete Column Function
+function deleteColumn(colKey) {
+    if (confirm("Delete this column and all its data?")) {
+        columnConfig = columnConfig.filter(col => col.key !== colKey);
+        scheduleData.rows.forEach(row => delete row[colKey]);
+        renderTable();
+        saveColumnConfig();
+    }
+}
+
+function addNewColumn() {
+    const title = prompt('Enter new column name:');
+    if (title) {
+        columnConfig.push({
+            key: title.toLowerCase().replace(/\s+/g, '_'),
+            title: title,
+            visible: true
+        });
+        renderTable();
+    }
+}
+
+
 function renderTable() {
+    const thead = document.querySelector('#scheduleTable thead');
     const tbody = document.querySelector('#scheduleTable tbody');
-    tbody.innerHTML = scheduleData.rows.map((row, index) => {
+    const weekGroups = groupByWeek();
+    let output = '';
+    let currentWeek = null;
+    let rowCounter = 0;
+
+    scheduleData.rows.forEach((row, index) => {
+        if (row.week !== currentWeek) {
+            currentWeek = row.week;
+            const weekSpan = weekGroups[row.week].count;
+            output += `<tr>
+                <td rowspan="${weekSpan}">${row.week}</td>
+                ${renderRowCells(row, index)}
+            </tr>`;
+            rowCounter += weekSpan - 1;
+        } else if (rowCounter > 0) {
+            output += `<tr>${renderRowCells(row, index)}</tr>`;
+            rowCounter--;
+        }
+    });
+
+    // Render Header
+    thead.innerHTML = `
+        <tr>
+            ${columnConfig.map(col => `
+                <th class="${col.deletable ? 'deletable' : ''}">
+                    <div class="th-header-wrapper">
+                        ${col.title}
+                        ${col.deletable ? 
+                            `<span class="delete-column-btn" onclick="deleteColumn('${col.key}')">✕</span>` : ''}
+                    </div>
+                </th>
+            `).join('')}
+            <th>Actions</th>
+        </tr>
+    `;
+    
+    // Render Body
+    tbody.innerHTML = output;
+}
+
+// Save column config
+function saveColumnConfig() {
+    localStorage.setItem('columnConfig', JSON.stringify(columnConfig));
+}
+
+// Load column config
+function loadColumnConfig() {
+    const savedConfig = localStorage.getItem('columnConfig');
+    if (savedConfig) {
+        columnConfig = JSON.parse(savedConfig);
+    }
+}
+
+// Update renderRowCells() to use columnConfig
+function renderRowCells(row, index) {
+    return columnConfig.map(col => {
+        if (!col.visible) return '';
+
+        let inputField;
+        switch(col.type) {
+            case 'date':
+                inputField = `<input type="date" value="${row[col.key] || ''}" 
+                                  oninput="updateRow(${index}, '${col.key}', this.value)">`;
+                break;
+            case 'url':
+                inputField = `
+                    <input type="url" 
+                           value="${row[col.key] || ''}"
+                           pattern="${col.validation.pattern}"
+                           title="${col.validation.errorMessage}"
+                           oninput="updateRow(${index}, '${col.key}', this.value)">`;
+                break;
+            default:
+                inputField = `<textarea oninput="updateRow(${index}, '${col.key}', this.value)"
+                                      >${row[col.key] || ''}</textarea>`;
+        }
+
         return `
-            <tr>
-                <td>${row.week}</td>
-                <td>
-                    <input type="date" 
-                           value="${row.date}" 
-                           oninput="updateRow(${index}, 'date', this.value)">
-                </td>
-                <td><input type="text" value="${row.title}" oninput="updateRow(${index}, 'title', this.value)"></td>
-                <td><textarea oninput="updateRow(${index}, 'contents', this.value)">${row.contents}</textarea></td>
-                <td><textarea oninput="updateRow(${index}, 'practices', this.value)">${row.practices}</textarea></td>
-                <td><textarea oninput="updateRow(${index}, 'assignments', this.value)">${row.assignments}</textarea></td>
-                <td><input type="url" value="${row.links}" oninput="updateRow(${index}, 'links', this.value)"></td>
-                <td><textarea oninput="updateRow(${index}, 'notes', this.value)">${row.notes}</textarea></td>
-                <td><span class="delete-btn" onclick="deleteRow(${index})">✕</span></td>
-            </tr>
+            <td>
+                ${col.key === 'week' ? '' : `
+                    ${col.key === 'date' ? `
+                        <input type="date" value="${row[col.key]}" 
+                            oninput="updateRow(${index}, '${col.key}', this.value)">
+                    ` : `
+                        <textarea oninput="updateRow(${index}, '${col.key}', this.value)">
+                            ${row[col.key] || ''}
+                        </textarea>
+                    `}
+                `}
+            </td>
         `;
-    }).join('');
+    }).join('') + `<td><span class="delete-btn" onclick="deleteRow(${index})">✕</span></td>`;
 }
 
 function updateRow(index, field, value) {
@@ -130,6 +317,7 @@ function saveSchedule() {
 }
 
 function loadSchedule() {
+    loadColumnConfig();
     const data = localStorage.getItem('scheduleData');
     if (data) {
         scheduleData = JSON.parse(data);
@@ -174,7 +362,7 @@ function exportExcel() {
             row.contents,
             row.practices,
             row.assignments,
-            row.links,
+            row.links, { t: 's', v: row.links, l: { Target: row.links } }, // Create hyperlink
             row.notes
         ])
     ];
@@ -220,32 +408,55 @@ function exportPDF() {
     doc.setFontSize(12);
     doc.text(`Course: ${scheduleData.courseName} (${scheduleData.courseCode})`, 14, 20);
 
+    // Find links column index
+    const linksColIndex = columnConfig.findIndex(col => col.key === 'links');
+
     // Create table
-    doc.autoTable({
+    const table = doc.autoTable({
         startY: 30,
-        head: [['Week', 'Date', 'Title', 'Contents', 'Practices', 'Assignments', 'Links', 'Notes']],
-        body: scheduleData.rows.map(row => [
-            row.week,
-            row.date,
-            row.title,
-            row.contents,
-            row.practices,
-            row.assignments,
-            row.links,
-            row.notes
-        ]),
-        styles: { fontSize: 9 },
-        columnStyles: {
-            0: { cellWidth: 15 },
-            1: { cellWidth: 25 },
-            2: { cellWidth: 30 },
-            3: { cellWidth: 40 },
-            4: { cellWidth: 30 },
-            5: { cellWidth: 30 },
-            6: { cellWidth: 30 },
-            7: { cellWidth: 30 }
+        head: [columnConfig.map(col => col.title).concat('Actions')],
+        body: scheduleData.rows.map(row => 
+            columnConfig.map(col => row[col.key]).concat('')
+        ),
+        styles: { 
+            fontSize: 9,
+            cellPadding: 1.5,
+            valign: 'middle'
+        },
+        didDrawCell: (data) => {
+            // Check if current column is links column
+            if (data.column.index === linksColIndex && data.cell.raw) {
+                const url = data.cell.raw;
+                if (isValidUrl(url)) {
+                    // Add clickable link
+                    doc.link(
+                        data.cell.x,
+                        data.cell.y,
+                        data.cell.width,
+                        data.cell.height,
+                        { url: url }
+                    );
+                    
+                    // Style as hyperlink (blue + underline)
+                    doc.setTextColor(0, 0, 255);
+                    doc.setFont(undefined, 'underline');
+                    doc.text(url, data.cell.x + 2, data.cell.y + 5);
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont(undefined, 'normal');
+                }
+            }
         }
     });
 
     doc.save('course_schedule.pdf');
+}
+
+// Helper function to validate URLs
+function isValidUrl(string) {
+    try {
+        new URL(string);
+        return true;
+    } catch (_) {
+        return false;
+    }
 }
