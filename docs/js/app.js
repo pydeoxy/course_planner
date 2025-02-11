@@ -160,20 +160,44 @@ function exportExcel() {
         return;
     }
 
-    // Create worksheet with headers
+    // Create worksheet data with course info
     const headers = ["Week", "Date", "Title", "Contents", "Practices", "Assignments", "Links", "Notes"];
-    const data = scheduleData.rows.map(row => [
-        row.week,
-        row.date,
-        row.title,
-        row.contents,
-        row.practices,
-        row.assignments,
-        row.links,
-        row.notes
-    ]);
+    const fullData = [
+        [`Course Name: ${scheduleData.courseName || 'N/A'}`], // Row 1
+        [`Course Code: ${scheduleData.courseCode || 'N/A'}`], // Row 2
+        [], // Empty row
+        headers, // Row 4 (headers)
+        ...scheduleData.rows.map(row => [ // Data rows
+            row.week,
+            row.date,
+            row.title,
+            row.contents,
+            row.practices,
+            row.assignments,
+            row.links,
+            row.notes
+        ])
+    ];
 
-    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    const worksheet = XLSX.utils.aoa_to_sheet(fullData);
+
+    // Add styling
+    const courseNameCell = worksheet['A1'];
+    if (courseNameCell) {
+        courseNameCell.s = {
+            font: { bold: true, color: { rgb: "000000" }, sz: 14 },
+            fill: { fgColor: { rgb: "DDEBF7" } }
+        };
+    }
+
+    const courseCodeCell = worksheet['A2'];
+    if (courseCodeCell) {
+        courseCodeCell.s = {
+            font: { bold: true, color: { rgb: "000000" }, sz: 12 },
+            fill: { fgColor: { rgb: "E2EFDA" } }
+        };
+    }
+    
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Schedule");
     XLSX.writeFile(workbook, "course_schedule.xlsx");
