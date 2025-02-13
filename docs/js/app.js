@@ -124,7 +124,7 @@ function groupByWeek() {
 
 // Column Config
 let columnConfig = [
-    { key: 'week', title: 'Week', type: 'text', deletable: false },
+    { key: 'week', title: 'Week', type: 'text', deletable: true },
     { key: 'date', title: 'Date', type: 'date', deletable: true },
     { key: 'title', title: 'Title', type: 'text', deletable: true },
     { key: 'contents', title: 'Contents', type: 'text', deletable: true },
