@@ -154,3 +154,13 @@ tr:hover {
     color: #ff4444;
     cursor: pointer;
 }
+
+/* Reset button styling */
+button[onclick="resetTable()"] {
+    background-color: #ff4444;
+    color: white;
+}
+
+button[onclick="resetTable()"]:hover {
+    background-color: #cc0000;
+}

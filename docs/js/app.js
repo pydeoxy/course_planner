@@ -169,19 +169,6 @@ function deleteColumn(colKey) {
     }
 }
 
-function addNewColumn() {
-    const title = prompt('Enter new column name:');
-    if (title) {
-        columnConfig.push({
-            key: title.toLowerCase().replace(/\s+/g, '_'),
-            title: title,
-            visible: true
-        });
-        renderTable();
-    }
-}
-
-
 function renderTable() {
     const thead = document.querySelector('#scheduleTable thead');
     const tbody = document.querySelector('#scheduleTable tbody');
@@ -223,6 +210,52 @@ function renderTable() {
     
     // Render Body
     tbody.innerHTML = output;
+}
+
+function resetTable() {
+    if (confirm("Are you sure you want to reset all data? This cannot be undone!")) {
+        // Reset data structure
+        scheduleData = {
+            courseName: "",
+            courseCode: "",
+            startDate: "",
+            endDate: "",
+            daysOfWeek: [],
+            rows: []
+        };
+
+        // Clear UI inputs
+        document.getElementById('courseName').value = '';
+        document.getElementById('courseCode').value = '';
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Uncheck all day checkboxes
+        document.querySelectorAll('input[name="days"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Clear table
+        renderTable();
+        
+        // Clear local storage
+        localStorage.removeItem('scheduleData');
+        localStorage.removeItem('columnConfig');
+        
+        // Optional: Reset columns to default
+        columnConfig = [
+            { key: 'week', title: 'Week', type: 'text', deletable: true },
+            { key: 'date', title: 'Date', type: 'date', deletable: true },
+            { key: 'title', title: 'Title', type: 'text', deletable: true },
+            { key: 'contents', title: 'Contents', type: 'text', deletable: true },
+            { key: 'practices', title: 'Practices', type: 'text', deletable: true },
+            { key: 'assignments', title: 'Assignments', type: 'text', deletable: true },
+            { key: 'links', title: 'Links', type: 'url', deletable: true },
+            { key: 'notes', title: 'Notes', type: 'text', deletable: true }
+        ];
+        
+        console.log("Table reset successfully!");
+    }
 }
 
 // Save column config
